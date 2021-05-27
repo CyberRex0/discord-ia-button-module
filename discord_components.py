@@ -80,10 +80,25 @@ class InteractionButtonRemoteObject:
     self.bot = kwargs['bot']
     self.payload = kwargs['payload']
     self.id = int(kwargs['payload']['id'])
+    self.channel_id = int(kwargs['payload']['channel_id'])
+    self.guild_id = None
     self.timeout = kwargs.get('timeout', None)
   
+  async def delete(self):
+    route = discord.http.Route('DELETE', f'/channels/{self.channel_id}/messages/{self.id}')
+    resp = await self.bot.http.request(route)
+  
+  async def edit(self, nd):
+    await self.update(nd)
+  
+  async def update(self, nd):
+    route = discord.http.Route('PATCH', f'/channels/{self.channel_id}/messages/{self.id}')
+    payload = nd.json
+    resp = await self.bot.http.request(route, json=payload)
+    self.payload = resp
+  
   async def wait_for_press(self, **kwargs):
-    data = await self.bot.wait_for('socket_response', check=lambda d: d['t'] == 'INTERACTION_CREATE' and d['d']['message']['id'] == str(self.id), timeout=self.timeout)
+    data = await self.bot.wait_for('socket_response', check=lambda d: d['t'] == 'INTERACTION_CREATE' and d['d']['message']['id'] == str(self.id), timeout=kwargs.get('timeout'))
     return InteractionButtonEventResponse(bot=self.bot, data=data['d'])
 
 class InteractionButton():
