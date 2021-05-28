@@ -83,6 +83,7 @@ class InteractionButtonRemoteObject:
     self.channel_id = int(kwargs['payload']['channel_id'])
     self.guild_id = None
     self.timeout = kwargs.get('timeout', None)
+    self._callback = None
   
   async def delete(self):
     route = discord.http.Route('DELETE', f'/channels/{self.channel_id}/messages/{self.id}')
@@ -96,6 +97,39 @@ class InteractionButtonRemoteObject:
     payload = nd.json
     resp = await self.bot.http.request(route, json=payload)
     self.payload = resp
+    
+  def set_callback(self, func):
+    if not asyncio.iscoroutinefunction(func):
+      raise TypeError('func must be awaitable function')
+    self._callback = func
+  
+  async def _event_handler_process(self, **kwargs):
+    while True:
+      d = await self.wait_for_press(timeout=kwargs.get('timeout'))
+      await self._callback(d)
+      if kwargs.get('timeout') is not None:
+        break
+  
+  def start_receive(self, **kwargs):
+    if not self._callback:
+      raise Exception('please set callback function before start receiving events')
+    self._callback_task = asyncio.create_task(self._event_handler_process(timeout=kwargs.get('timeout')))
+    return self._callback_task
+    
+  def stop_receive(self):
+    if self._callback_task:
+      try:
+        self._callback_task.cancel()
+      except:
+        pass
+      self._callback_task = None
+  
+  def clear_callback(self):
+    if self._callback_task:
+      if (not self._callback_task.done()) and (not self._callback_task.cancelled()):
+        self._callback_task.cancel()
+    self._callback = None
+    self._callback_task = None
   
   async def wait_for_press(self, **kwargs):
     data = await self.bot.wait_for('socket_response', check=lambda d: d['t'] == 'INTERACTION_CREATE' and d['d']['message']['id'] == str(self.id), timeout=kwargs.get('timeout'))
