@@ -1,4 +1,4 @@
-# dpy-ia-button-module
+# discord-ia-button-module
 Interaction Button Programming Module
 
 # Documentation
