@@ -4,10 +4,25 @@ import asyncio
 import json
 import aiohttp
 
+class InteractionEventResponseType:
+  ACK_ONLY = 6
+  REPLY_INTERACTION = 4
+  REPLY_DEFER_INTERACTION = 5
+  UPDATE_MESSAGE = 7
+
+class InteractionGatewayEventType:
+  PING = 1
+  APPLICATION_COMMAND = 2
+  MESSAGE_COMPONENT = 3
+
+class MessageComponentType:
+  ACITON_ROW = 1
+  BUTTON = 2
+
 class InteractionButtonParts():
   def __init__(self, **kwargs):
     self.name = kwargs.get('name')
-    self.type = 2
+    self.type = MessageComponentType.BUTTON
     self.emoji = kwargs.get('emoji', '')
     if self.emoji and (not isinstance(self.emoji, str)) and (not isinstance(self.emoji, discord.Emoji)):
       raise TypeError('emoji only allowed str and Emoji')
@@ -61,18 +76,39 @@ class InteractionButtonEventResponse:
     self.data = kwargs['data']
     self.REPLY_TOKEN = kwargs['data']['token']
     self.name = kwargs['data']['data']['custom_id']
+    self.message = kwargs['message']
     self.session = aiohttp.ClientSession()
   
-  async def reply(self, text: str) -> dict:
+  async def custom_response(self, t: int, d: dict):
     route = discord.http.Route('POST', '')
     route.url = f'https://discord.com/api/v9/interactions/{self.data["id"]}/{self.REPLY_TOKEN}/callback'
     payload = {
-      'type': 4,
+      'type': t,
+      'data': d
+    }
+    resp = await self.bot.http.request(route, json=payload)
+
+  async def ack(self) -> None:
+    route = discord.http.Route('POST', '')
+    route.url = f'https://discord.com/api/v9/interactions/{self.data["id"]}/{self.REPLY_TOKEN}/callback'
+    payload = {
+      'type': InteractionEventResponseType.ACK_ONLY,
+    }      
+    resp = await self.bot.http.request(route, json=payload)
+
+  async def reply(self, text: str, **kwargs):
+    route = discord.http.Route('POST', '')
+    route.url = f'https://discord.com/api/v9/interactions/{self.data["id"]}/{self.REPLY_TOKEN}/callback'
+    payload = {
+      'type': InteractionEventResponseType.REPLY_INTERACTION,
       'data': {
         'content': text,
-        'flags': 0b01000000
+        'flags': True if kwargs.get('hidden') else False
       }
     }
+    if kwargs.get('embed'):
+      payload['data']['embeds'] = [kwargs.get('embed').to_dict()]
+      
     resp = await self.bot.http.request(route, json=payload)
 
 class InteractionButtonRemoteObject:
@@ -81,13 +117,24 @@ class InteractionButtonRemoteObject:
     self.payload = kwargs['payload']
     self.id = int(kwargs['payload']['id'])
     self.channel_id = int(kwargs['payload']['channel_id'])
+    try:
+      self.message = self.bot._get_state().create_message(channel=self.bot.get_channel(self.channel_id), data=self.payload)
+    except:
+      self.message = None
     self.guild_id = None
     self.timeout = kwargs.get('timeout', None)
     self._callback = None
   
+  def _update_message_object(self, p):
+    try:
+      self.message = self.bot._get_state().create_message(channel=self.bot.get_channel(self.channel_id), data=p)
+    except:
+      self.message = None
+
   async def delete(self):
     route = discord.http.Route('DELETE', f'/channels/{self.channel_id}/messages/{self.id}')
     resp = await self.bot.http.request(route)
+    self.message = None
   
   async def edit(self, nd):
     await self.update(nd)
@@ -97,6 +144,7 @@ class InteractionButtonRemoteObject:
     payload = nd.json
     resp = await self.bot.http.request(route, json=payload)
     self.payload = resp
+    self._update_message_object(resp)
     
   def set_callback(self, func):
     if not asyncio.iscoroutinefunction(func):
@@ -133,7 +181,7 @@ class InteractionButtonRemoteObject:
   
   async def wait_for_press(self, **kwargs):
     data = await self.bot.wait_for('socket_response', check=lambda d: d['t'] == 'INTERACTION_CREATE' and d['d']['message']['id'] == str(self.id), timeout=kwargs.get('timeout'))
-    return InteractionButtonEventResponse(bot=self.bot, data=data['d'])
+    return InteractionButtonEventResponse(bot=self.bot, message=self.message, data=data['d'])
 
 class InteractionButton():
   def __init__(self, **kwargs):
@@ -154,6 +202,13 @@ class InteractionButton():
     
     self.buttons.append(btn)
   
+  def add_buttons(self, btns):
+    self.json = {}
+    if len(self.buttons) + len(btns) > 5:
+      raise Exception('buttons can be added up to 5 items')
+    
+    self.buttons.extend(btns)
+  
   def remove_button(self, btn: InteractionButtonParts):
     self.json = {}
     self.buttons.remove(btn)
@@ -169,7 +224,7 @@ class InteractionButton():
       self.embed = kwargs.get('embed').to_dict()
       data['embed'] = kwargs.get('embed').to_dict()
     data['components'] = [{
-      'type': 1,
+      'type': MessageComponentType.ACITON_ROW,
       'components': []
     }]
     for parts in self.buttons:
@@ -219,5 +274,8 @@ class InteractionButtonStylesBase():
   
   def red(self):
     return self.danger()
+  
+  def url(self):
+    return self.link()
     
 InteractionButtonStyles = InteractionButtonStylesBase()
