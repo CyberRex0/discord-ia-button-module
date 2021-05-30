@@ -78,7 +78,7 @@ class InteractionButton {
         if (!request.ok) {
             request.text().then((e) => {
                 throw 'Discord API was returned an error:\n'+ e;
-            }
+            });
         }
         params.bot = this.bot;
         request.json().then((j) => {
@@ -118,7 +118,7 @@ class InteractionButton {
         if (!request.ok) {
             request.text().then((e) => {
                 throw 'Discord API was returned an error:\n'+ e;
-            }
+            });
         }
      }
 
@@ -140,7 +140,7 @@ class InteractionButton {
         if (!request.ok) {
             request.text().then((e) => {
                 throw 'Discord API was returned an error:\n'+ e;
-            }
+            });
         }
      }
 
@@ -165,7 +165,7 @@ class InteractionButton {
         if (!request.ok) {
             request.text().then((e) => {
                 throw 'Discord API was returned an error:\n'+ e;
-            }
+            });
         }
      }
  }
