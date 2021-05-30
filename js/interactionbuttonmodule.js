@@ -75,7 +75,11 @@ class InteractionButton {
             redirect: 'follow',
             body: JSON.stringify(this.json)
         });
-        if (!request.ok) throw 'Discord API was returned an error:\n'+ res.text();
+        if (!request.ok) {
+            request.text().then((e) => {
+                throw 'Discord API was returned an error:\n'+ e;
+            }
+        }
         params.bot = this.bot;
         request.json().then((j) => {
             f(new InteractionButtonRemoteObject({bot: params.bot, channel: params.channel, data: j}));
@@ -111,7 +115,11 @@ class InteractionButton {
             redirect: 'follow',
             body: JSON.stringify(payload)
         });
-        if (!request.ok) throw 'Discord API was returned an error:\n'+request.text();
+        if (!request.ok) {
+            request.text().then((e) => {
+                throw 'Discord API was returned an error:\n'+ e;
+            }
+        }
      }
 
      async ack () {
@@ -129,7 +137,11 @@ class InteractionButton {
             redirect: 'follow',
             body: JSON.stringify(payload)
         });
-        if (!request.ok) throw 'Discord API was returned an error:\n'+request.text();   
+        if (!request.ok) {
+            request.text().then((e) => {
+                throw 'Discord API was returned an error:\n'+ e;
+            }
+        }
      }
 
      async reply (text, params = {}) {
@@ -150,7 +162,11 @@ class InteractionButton {
             redirect: 'follow',
             body: JSON.stringify(payload)
         });
-        if (!request.ok) throw 'Discord API was returned an error:\n'+request.text();
+        if (!request.ok) {
+            request.text().then((e) => {
+                throw 'Discord API was returned an error:\n'+ e;
+            }
+        }
      }
  }
 
