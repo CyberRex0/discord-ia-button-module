@@ -47,7 +47,7 @@ class InteractionButton {
 
     build () {
         var data = {components: [
-            {type: MessageComponentType.ACITON_ROW, components: []}
+            {type: MessageComponentType.ACTION_ROW, components: []}
         ]};
         this.buttons.forEach((v, i) => {
             data.components[0].components.push(v.to_dict());
@@ -81,6 +81,7 @@ class InteractionButton {
             });
         }
         params.bot = this.bot;
+        if (!f) return;
         request.json().then((j) => {
             f(new InteractionButtonRemoteObject({bot: params.bot, channel: params.channel, data: j}));
         });
@@ -283,7 +284,7 @@ class InteractionButton {
      constructor () {
 
      }
-     static ACITON_ROW = 1;
+     static ACTION_ROW = 1;
      static BUTTON = 2;
  }
 
