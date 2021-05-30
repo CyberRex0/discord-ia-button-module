@@ -60,7 +60,7 @@ class InteractionButton {
         if (params.content) this.json.content = params.content;
         if (params.embed) {
             if (!params.embed instanceof Discord.MessageEmbed) throw 'embed must be MessageEmbed';
-            this.json.embed = JSON.parse(params.embed.toJSON());
+            this.json.embed = params.embed.toJSON();
         }
         if (!this.json.content && !this.json.embed) this.json.content = '.';
         if (!params.channel) throw 'please specify the location of channel to send';
