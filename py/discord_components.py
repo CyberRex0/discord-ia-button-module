@@ -105,7 +105,7 @@ class InteractionButtonEventResponse:
       'type': InteractionEventResponseType.REPLY_INTERACTION,
       'data': {
         'content': text,
-        'flags': True if kwargs.get('hidden') else False
+        'flags': 0b01000000 if kwargs.get('hidden') else False
       }
     }
     if kwargs.get('embed'):
