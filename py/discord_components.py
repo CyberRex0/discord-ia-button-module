@@ -77,6 +77,7 @@ class InteractionButtonEventResponse:
     self.REPLY_TOKEN = kwargs['data']['token']
     self.name = kwargs['data']['data']['custom_id']
     self.message = kwargs['message']
+    self.ctx = kwargs.get('ctx')
     self.session = aiohttp.ClientSession()
   
   async def custom_response(self, t: int, d: dict):
@@ -88,13 +89,14 @@ class InteractionButtonEventResponse:
     }
     resp = await self.bot.http.request(route, json=payload)
 
-  async def ack(self) -> None:
+  async def ack(self) -> dict:
     route = discord.http.Route('POST', '')
     route.url = f'https://discord.com/api/v9/interactions/{self.data["id"]}/{self.REPLY_TOKEN}/callback'
     payload = {
-      'type': InteractionEventResponseType.ACK_ONLY,
+      'type': InteractionEventResponseType.ACK_ONLY
     }      
     resp = await self.bot.http.request(route, json=payload)
+    return resp
 
   async def reply(self, text: str, **kwargs):
     route = discord.http.Route('POST', '')
@@ -154,7 +156,12 @@ class InteractionButtonRemoteObject:
   async def _event_handler_process(self, **kwargs):
     while True:
       d = await self.wait_for_press(timeout=kwargs.get('timeout'))
-      await self._callback(d)
+      ctx = None
+      try:
+        ctx = await self.bot.get_context(self.message)
+      except:
+        pass
+      await self._callback(ctx, d)
       if kwargs.get('timeout') is not None:
         break
   
@@ -181,7 +188,12 @@ class InteractionButtonRemoteObject:
   
   async def wait_for_press(self, **kwargs):
     data = await self.bot.wait_for('socket_response', check=lambda d: d['t'] == 'INTERACTION_CREATE' and d['d']['message']['id'] == str(self.id), timeout=kwargs.get('timeout'))
-    return InteractionButtonEventResponse(bot=self.bot, message=self.message, data=data['d'])
+    ctx = None
+    try:
+      ctx = await self.bot.get_context(self.message)
+    except:
+      pass
+    return InteractionButtonEventResponse(bot=self.bot, message=self.message, ctx=ctx, data=data['d'])
 
 class InteractionButton():
   def __init__(self, **kwargs):
