@@ -148,17 +148,18 @@ class InteractionButtonRemoteObject:
     self.payload = resp
     self._update_message_object(resp)
     
-  def set_callback(self, func):
+  def set_callback(self, func, ctx):
     if not asyncio.iscoroutinefunction(func):
       raise TypeError('func must be awaitable function')
     self._callback = func
+    self.ctx = ctx
   
   async def _event_handler_process(self, **kwargs):
     while True:
       d = await self.wait_for_press(timeout=kwargs.get('timeout'))
-      ctx = None
+      ctx = self.ctx
       try:
-        ctx = await self.bot.get_context(self.message)
+        pass
       except:
         pass
       await self._callback(ctx, d)
