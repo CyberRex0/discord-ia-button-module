@@ -2,7 +2,6 @@ from typing import Type
 import discord
 import asyncio
 import json
-import aiohttp
 
 class InteractionEventResponseType:
   ACK_ONLY = 6
@@ -77,8 +76,8 @@ class InteractionButtonEventResponse:
     self.REPLY_TOKEN = kwargs['data']['token']
     self.name = kwargs['data']['data']['custom_id']
     self.message = kwargs['message']
+    self.original_message = kwargs.get('original_message')
     self.ctx = kwargs.get('ctx')
-    self.session = aiohttp.ClientSession()
   
   async def custom_response(self, t: int, d: dict):
     route = discord.http.Route('POST', '')
@@ -123,6 +122,7 @@ class InteractionButtonRemoteObject:
       self.message = self.bot._get_state().create_message(channel=self.bot.get_channel(self.channel_id), data=self.payload)
     except:
       self.message = None
+    self.original_message = kwargs.get('orignal_message')
     self.guild_id = None
     self.timeout = kwargs.get('timeout', None)
     self._callback = None
@@ -193,14 +193,14 @@ class InteractionButtonRemoteObject:
       ctx = await self.bot.get_context(self.message)
     except:
       pass
-    return InteractionButtonEventResponse(bot=self.bot, message=self.message, ctx=ctx, data=data['d'])
+    return InteractionButtonEventResponse(bot=self.bot, message=self.message, original_message=self.original_message, ctx=ctx, data=data['d'])
 
 class InteractionButton():
   def __init__(self, **kwargs):
     self.bot = kwargs.get('bot')
     if (not isinstance(self.bot, discord.Client)) and (not isinstance(self.bot, discord.ext.commands.Bot)) and (not isinstance(self.bot, discord.AutoShardedClient)) and (not isinstance(self.bot, discord.ext.commands.AutoShardedBot)):
       raise TypeError('bot must be Client or Bot')
-    self.http = aiohttp.ClientSession()
+    self.original_message = kwargs.get('original_message')
     self.embed = kwargs.get('embed')
     if self.embed and (not isinstance(self.embed, discord.Embed)):
       raise TypeError('embed must be Embed')
