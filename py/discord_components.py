@@ -253,7 +253,7 @@ class InteractionButton():
     channel = kwargs.get('channel')
     route = discord.http.Route('POST', f'/channels/{channel.id}/messages', channel_id=channel.id)
     resp = await self.bot.http.request(route, json=self.json)
-    return InteractionButtonRemoteObject(bot=self.bot, payload=resp)
+    return InteractionButtonRemoteObject(bot=self.bot, payload=resp, original_message=self.original_message)
   
 
 class InteractionButtonStylesBase():
